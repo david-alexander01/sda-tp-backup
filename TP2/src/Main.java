@@ -81,12 +81,11 @@ public class Main {
                 default:
                     System.out.println("Something's wrong, I can feel it");
             }
-            System.out.println(command);
-            for (Pulau p : pulaus.values()) {
-                System.out.println(p);
-            }
-            System.out.println(posisiRaiden.pulau.name + " " + posisiRaiden.node.value.name + " " + posisiRaiden.node.value.height);
-            System.out.println();
+//            System.out.println(command);
+//            for (Pulau p : pulaus.values()) {
+//                System.out.println(p);
+//            }
+//            System.out.println();
         }
 
         out.close();
