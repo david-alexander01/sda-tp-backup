@@ -114,7 +114,7 @@ public class Main {
             if (kuilU == dataranRaiden) raidenPerluPindah = false;
             kuilU = kuilU.next;
             count++;
-        } while (kuilU != null);
+        } while (kuilU.next != null);
 
         out.println(count + " " + (current.banyakDataran - count));
 
@@ -126,23 +126,22 @@ public class Main {
 
         ArrayList<String> kuils = new ArrayList<>();
         ArrayList<Integer> indexes = new ArrayList<>();
-        int index = 0;
+        int toRemove = 0;
 
         // add kuils from old island to new island
         for (int i = 0; i < current.kuils.size(); i++) {
             if (current.kuilIndexes.get(i) <= count) {
-                index = i;
                 continue;
             }
             kuils.add(current.kuils.get(i));
-            indexes.add(current.kuilIndexes.get(i));
+            indexes.add(current.kuilIndexes.get(i)-count);
+            toRemove++;
         }
 
         // remove kuils from old island
-        int size = current.kuils.size();
-        for (int i = size - 1; i > index; i--) {
+        for (int i = 0; i < toRemove; i++) {
             current.kuils.remove(current.kuils.size() - 1);
-            current.kuilIndexes.remove(current.kuils.size() - 1);
+            current.kuilIndexes.remove(current.kuilIndexes.size() - 1);
         }
 
 
@@ -337,7 +336,7 @@ public class Main {
     private static void sweeping() {
         // will probably TLE right now
         String u = in.next();
-        int l = in.nextInt();
+        long l = in.nextLong();
         Pulau p = pulaus.get(u);
         ListNode temp = p.datarans.head;
         int count = 0;
@@ -378,8 +377,8 @@ public class Main {
             return Integer.parseInt(next());
         }
 
-        public char nextChar() {
-            return next().charAt(0);
+        public long nextLong() {
+            return Long.parseLong(next());
         }
 
     }
@@ -398,9 +397,7 @@ class Pulau {
         this.banyakDataran = banyakDataran;
         datarans = new DoublyLinkedList();
         kuils = new ArrayList<>();
-        kuils.add(name);
         kuilIndexes = new ArrayList<>();
-        kuilIndexes.add(1);
     }
 
     public Pulau(String name, int banyakDataran, ListNode head, ListNode tail, ArrayList<String> kuils, ArrayList<Integer> kuilIndexes) {
@@ -417,10 +414,12 @@ class Pulau {
     public String toString() {
         ListNode cur = datarans.head;
         StringBuilder s = new StringBuilder(name + " ");
+        s.append("\nKUILS AND INDEXES " + kuils + kuilIndexes + "\n");
         while (cur != null) {
             s.append(cur.value.height).append(cur.value.name == null ? "" : cur.value.name).append(", ");
             cur = cur.next;
         }
+        s.append("\n");
         return s.toString();
     }
 }
@@ -524,50 +523,53 @@ class Posisi {
 }
 
 class BinaryNode {
-    int value;
+    int height;
     BinaryNode left;
     BinaryNode right;
+    ArrayList<Dataran> values;
 
-    public BinaryNode(int value) {
+    public BinaryNode(Dataran value) {
         new BinaryNode(value, null, null);
     }
 
-    public BinaryNode(int value, BinaryNode left, BinaryNode right) {
-        this.value = value;
+    public BinaryNode(Dataran value, BinaryNode left, BinaryNode right) {
+        this.height = value.height;
         this.left = left;
         this.right = right;
+        values = new ArrayList<>();
+        values.add(value);
     }
 }
 
 class BST {
     BinaryNode root;
 
-    void insert(int value) throws Exception {
+    void insert(Dataran value) {
         root = insert(value, root);
     }
 
-    BinaryNode insert(int value, BinaryNode node) throws Exception {
+    BinaryNode insert(Dataran value, BinaryNode node) {
         if (node == null) {
             return new BinaryNode(value);
-        } else if (value < node.value) {
-            node.left = insert(value, node.left);
-        } else if (value > node.value) {
+        } else if (value.height > node.height) {
             node.right = insert(value, node.right);
-        } else {
-            throw new Exception("Duplicate Item in BST");
+        } else if (value.height < node.height) {
+            node.left = insert(value, node.left);
+        } else { // value.height == node.height
+            node.values.add(value);
         }
         return node;
     }
 
-    BinaryNode find(int value, BinaryNode node) {
+    BinaryNode find(int height, BinaryNode node) {
         if (node == null) {
             return null;
-        } else if (value == node.value) {
+        } else if (height == node.height) {
             return node;
         }
-        return (value < node.value)
-                ? find(value, node.left)
-                : find(value, node.right);
+        return (height < node.height)
+                ? find(height, node.left)
+                : find(height, node.right);
     }
 
 }
