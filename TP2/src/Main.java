@@ -7,11 +7,13 @@ public class Main {
     private static InputReader in = new InputReader(System.in);
     private static PrintWriter out = new PrintWriter(System.out);
     private static HashMap<String, Pulau> pulaus;
+    private static HashMap<String, Posisi> posisiKuils;
     private static Posisi posisiRaiden = new Posisi(null, null);
 
     public static void main(String[] args) {
         int n = in.nextInt();
         pulaus = new HashMap<>();
+        posisiKuils = new HashMap<>();
 
         for (int i = 0; i < n; i++) {
             // input pulau
@@ -20,17 +22,23 @@ public class Main {
             Pulau pulau = new Pulau(name, banyakDataran);
             int height = in.nextInt();
             Dataran kuil = new Dataran(name, height);
+
+            // Insert into arraylists
             pulau.datarans.add(kuil);
+            pulau.dataranTree.insert(kuil);
             pulau.kuils.add(kuil.name);
             pulau.kuilIndexes.add(1);
-            pulau.dataranTree.insert(kuil);
+
             for (int j = 1; j < banyakDataran; j++) {
                 height = in.nextInt();
                 Dataran d = new Dataran(height);
                 pulau.datarans.add(d);
                 pulau.dataranTree.insert(d);
             }
+
+            // Insert into hashmaps
             pulaus.put(name, pulau);
+            posisiKuils.put(name, new Posisi(pulau, pulau.datarans.head));
         }
 
         String r = in.next();
@@ -100,39 +108,50 @@ public class Main {
 
     private static void pisah() {
         String u = in.next();
-        Pulau current = null;
+        Pulau current;
 
-        // get pulau with kuil U
-        for (Pulau p : pulaus.values()) {
-            for (String d : p.kuils) {
-                if (d.equals(u)) {
-                    current = p;
-                    break;
-                }
-            }
-        }
+//        // get pulau with kuil U
+//        for (Pulau p : pulaus.values()) {
+//            for (String d : p.kuils) {
+//                if (d.equals(u)) {
+//                    current = p;
+//                    break;
+//                }
+//            }
+//        }
+
+        Posisi posisiKuilU = posisiKuils.get(u);
+
+        current = posisiKuilU.pulau;
 
         int count = 0;
-        ListNode kuilU = current.datarans.head;
+        ListNode kuilU = posisiKuilU.node;
         ListNode dataranRaiden = posisiRaiden.node;
         boolean raidenPerluPindah = true;
 
-        current.dataranTree = new BST();
-        do {
-            if (kuilU.value.name != null && kuilU.value.name.equals(u)) break;
-            if (kuilU == dataranRaiden) raidenPerluPindah = false;
-            current.dataranTree.insert(kuilU.value);
-            kuilU = kuilU.next;
-            count++;
-        } while (kuilU.next != null);
+        // update linkedList
+        // pulau with U
+        ListNode uTail = current.datarans.tail;
 
-        out.println(count + " " + (current.banyakDataran - count));
-
-        ListNode kuilUTail = current.datarans.tail;
+        // pulau with no U
         current.datarans.tail = kuilU.prev;
         kuilU.prev.next = null;
+
+        // disconnect U
         kuilU.prev = null;
 
+        // remake current tree
+        current.dataranTree = new BST();
+        ListNode temp = current.datarans.head;
+        while (temp != null) {
+            current.dataranTree.insert(temp.value);
+            if (temp == dataranRaiden) raidenPerluPindah = false;
+            temp = temp.next;
+            count++;
+        }
+        out.println(count + " " + (current.banyakDataran - count));
+        Pulau pulauU = new Pulau(kuilU.value.name, current.banyakDataran - count);
+        posisiKuilU.pulau = pulauU;
 
         ArrayList<String> kuils = new ArrayList<>();
         ArrayList<Integer> indexes = new ArrayList<>();
@@ -143,8 +162,10 @@ public class Main {
             if (current.kuilIndexes.get(i) <= count) {
                 continue;
             }
-            kuils.add(current.kuils.get(i));
+            String kuil = current.kuils.get(i);
+            kuils.add(kuil);
             indexes.add(current.kuilIndexes.get(i) - count);
+            posisiKuils.get(kuil).pulau = pulauU;
             toRemove++;
         }
 
@@ -154,15 +175,22 @@ public class Main {
             current.kuilIndexes.remove(current.kuilIndexes.size() - 1);
         }
 
+        pulauU.kuils = kuils;
+        pulauU.kuilIndexes = indexes;
+        pulauU.datarans = new DoublyLinkedList(kuilU, uTail);
+        BST uTree = new BST();
+        ListNode tempU = pulauU.datarans.head;
+        while (tempU != null){
+            uTree.insert(tempU.value);
+            tempU = tempU.next;
+        }
+        pulauU.dataranTree = uTree;
 
-        // name, banyakdataran, head, tail, kuils, indexes
-        Pulau pulauBaru = new Pulau(u, current.banyakDataran - count, kuilU, kuilUTail, kuils, indexes);
-        pulaus.put(u, pulauBaru);
+        pulaus.put(u, pulauU);
         current.banyakDataran = count;
         if (raidenPerluPindah) {
-            posisiRaiden.pulau = pulauBaru;
+            posisiRaiden.pulau = pulauU;
         }
-
     }
 
     private static void unifikasi() {
@@ -180,9 +208,11 @@ public class Main {
         pulauU.datarans.tail.next = pulauV.datarans.head;
         pulauV.datarans.head.prev = pulauU.datarans.tail;
 
-        pulauU.kuils.addAll(pulauV.kuils);
-        for (int i : pulauV.kuilIndexes) {
-            pulauU.kuilIndexes.add(i + pulauU.banyakDataran);
+        for (int i = 0; i < pulauV.kuilIndexes.size(); i++) {
+            pulauU.kuilIndexes.add(pulauV.kuilIndexes.get(i) + pulauU.banyakDataran);
+            String kuilV = pulauV.kuils.get(i);
+            pulauU.kuils.add(kuilV);
+            posisiKuils.get(kuilV).pulau = pulauU;
         }
 
         pulauU.datarans.tail = pulauV.datarans.tail;
@@ -202,20 +232,9 @@ public class Main {
         String u = in.next();
         int h = in.nextInt();
         int x = in.nextInt();
-        int count;
 
         Pulau p = pulaus.get(u);
-//        ListNode currentDataran = p.datarans.head;
-//        do {
-//            if (currentDataran.value.height > h) {
-//                currentDataran.value.height += x; // so intellij can have opinions now
-//                count++;
-//            }
-//            currentDataran = currentDataran.next;
-//        } while (currentDataran != null);
-
-        count = riseRec(p.dataranTree.root, h, x);
-
+        int count = riseRec(p.dataranTree.root, h, x);
         out.println(count);
     }
 
@@ -242,20 +261,9 @@ public class Main {
         String u = in.next();
         int h = in.nextInt();
         int x = in.nextInt();
-        int count;
 
         Pulau p = pulaus.get(u);
-//        ListNode currentDataran = p.datarans.head;
-//        do {
-//            if (currentDataran.value.height < h) {
-//                currentDataran.value.height = Math.max(currentDataran.value.height - x, 0);
-//                count++;
-//            }
-//            currentDataran = currentDataran.next;
-//        } while (currentDataran != null);
-
-        count = quakeRec(p.dataranTree.root, h, x);
-
+        int count = quakeRec(p.dataranTree.root, h, x);
         out.println(count);
     }
 
@@ -287,25 +295,16 @@ public class Main {
 
         // remove from BST
         BST tree = posisiRaiden.pulau.dataranTree;
-        BinaryNode bn = tree.find(letakRaiden.value.height);
-        if (bn.values.size() > 1) {
-            for (Dataran d : bn.values) {
-                if (d == letakRaiden.value) {
-                    bn.values.remove(d);
-                    break;
-                }
-            }
-        } else {
-            tree.remove(letakRaiden.value.height);
-        }
+        tree.remove(letakRaiden.value);
 
         if (letakRaiden.next != null) {
             letakRaiden = letakRaiden.prev;
             letakRaiden.next = letakRaiden.next.next;
             letakRaiden.next.prev = letakRaiden;
-        } else {
+        } else { // crumble tail
             letakRaiden = letakRaiden.prev;
             letakRaiden.next = null;
+            posisiRaiden.pulau.datarans.tail = letakRaiden;
         }
 
         posisiRaiden.node = letakRaiden;
@@ -319,9 +318,11 @@ public class Main {
         }
 
         ListNode leftDataranRaiden = dataranRaiden.prev;
-        int x = Math.min(dataranRaiden.value.height, leftDataranRaiden.value.height);
+        long x = Math.min(dataranRaiden.value.height, leftDataranRaiden.value.height);
         Pulau p = posisiRaiden.pulau;
-        p.datarans.insert(new Dataran(x), dataranRaiden);
+        Dataran d = new Dataran(x);
+        p.dataranTree.insert(d);
+        p.datarans.insert(d, dataranRaiden);
         out.println(x);
     }
 
@@ -350,48 +351,15 @@ public class Main {
     private static void tebas() {
         String arah = in.next();
         int s = in.nextInt();
-        int count = 0;
         Pulau pulauRaiden = posisiRaiden.pulau;
         ListNode dataranRaiden = posisiRaiden.node;
-        ListNode dataranRaidenAwal = dataranRaiden;
-        ListNode tempDataranRaiden = dataranRaiden;
-        int tinggiDataranRaidenAwal = dataranRaiden.value.height;
-
-//        if (arah.equals("KIRI")) {
-//            while (count < s && tempDataranRaiden.prev != null) {
-//                tempDataranRaiden = tempDataranRaiden.prev;
-//                if (tempDataranRaiden.value.height == tinggiDataranRaidenAwal) {
-//                    count++;
-//                    dataranRaiden = tempDataranRaiden;
-//                }
-//            }
-//            posisiRaiden.node = dataranRaiden;
-//            out.println((dataranRaiden != dataranRaidenAwal) ?
-//                    dataranRaiden.next.value.height : 0);
-//        } else { // arah == "KANAN"
-//            while (count < s && tempDataranRaiden.next != null) {
-//                tempDataranRaiden = tempDataranRaiden.next;
-//                if (tempDataranRaiden.value.height == tinggiDataranRaidenAwal) {
-//                    count++;
-//                    dataranRaiden = tempDataranRaiden;
-//                }
-//            }
-//            posisiRaiden.node = dataranRaiden;
-//            out.println((dataranRaiden != dataranRaidenAwal) ?
-//                    dataranRaiden.prev.value.height : 0);
-//        }
+        long tinggiDataranRaidenAwal = dataranRaiden.value.height;
 
         BinaryNode equal = pulauRaiden.dataranTree.find(tinggiDataranRaidenAwal);
-        Dataran awal = null;
-        int index = 0;
-        for (int i = 0; i < equal.values.size(); i++) {
-            if (equal.values.get(i) == dataranRaidenAwal.value) {
-                awal = equal.values.get(i);
-                index = i;
-            }
-        }
+        Dataran awal = dataranRaiden.value;
+        int index = equal.values.indexOf(awal);
+
         if (arah.equals("KIRI")) {
-            count = Math.min(index, s);
             index = Math.max(index - s, 0);
             Dataran d = equal.values.get(index);
             ListNode head = posisiRaiden.pulau.datarans.head;
@@ -402,8 +370,7 @@ public class Main {
             out.println((awal != posisiRaiden.node.value) ?
                     posisiRaiden.node.next.value.height : 0);
         } else { // arah.equals("KANAN")
-            count = Math.min(equal.values.size() - index, s);
-            index = Math.min(index + s, equal.values.size());
+            index = Math.min(index + s, equal.values.size() - 1);
             Dataran d = equal.values.get(index);
             ListNode tail = posisiRaiden.pulau.datarans.tail;
             while (tail.value != d) {
@@ -418,48 +385,24 @@ public class Main {
 
     private static void teleportasi() {
         String v = in.next();
-        Pulau current = null;
+        Posisi posisiKuil = posisiKuils.get(v);
 
-        // get pulau with kuil U
-        for (Pulau p : pulaus.values()) {
-            for (String d : p.kuils) {
-                if (d.equals(v)) {
-                    current = p;
-                    break;
-                }
-            }
-        }
-
-        ListNode dataran = current.datarans.head;
-        while (dataran.value.name == null || !dataran.value.name.equals(v)) {
-            dataran = dataran.next;
-        }
-
-        posisiRaiden.pulau = current;
-        posisiRaiden.node = dataran;
-        out.println(dataran.value.height);
+        posisiRaiden.pulau = posisiKuil.pulau;
+        posisiRaiden.node = posisiKuil.node;
+        out.println(posisiKuil.node.value.height);
     }
 
     private static void sweeping() {
-        // will probably TLE right now
         String u = in.next();
         long l = in.nextLong();
         Pulau p = pulaus.get(u);
-//        ListNode temp = p.datarans.head;
-//        int count = 0;
-//        do {
-//            if (temp.value.height < l) {
-//                count++;
-//            }
-//            temp = temp.next;
-//        } while (temp != null);
 
-        int count = recSweep(p.dataranTree.root, (int) Math.min(l, Integer.MAX_VALUE));
+        int count = recSweep(p.dataranTree.root, l);
 
         out.println(count);
     }
 
-    private static int recSweep(BinaryNode node, int height) {
+    private static int recSweep(BinaryNode node, long height) {
         if (node == null) {
             return 0;
         } else if (node.height < height) {
@@ -502,6 +445,102 @@ public class Main {
 
     }
 
+}
+
+class Dataran {
+    String name;
+    long height;
+
+    public Dataran(long height) {
+        this(null, height);
+    }
+
+    public Dataran(String name, long height) {
+        this.name = name;
+        this.height = height;
+    }
+
+}
+
+class ListNode {
+    Dataran value;
+    ListNode next;
+    ListNode prev;
+
+
+    public ListNode(Dataran value) {
+        this(value, null, null);
+    }
+
+    public ListNode(Dataran value, ListNode next, ListNode prev) {
+        this.value = value;
+        this.next = next;
+        this.prev = prev;
+    }
+}
+
+class DoublyLinkedList {
+    // not circularly linked
+
+    ListNode head;
+    ListNode tail;
+
+    public DoublyLinkedList() {
+        head = null;
+        tail = null;
+    }
+
+    public DoublyLinkedList(ListNode head, ListNode tail) {
+        this.head = head;
+        this.tail = tail;
+    }
+
+    void add(Dataran value) {
+        add(new ListNode(value));
+    }
+
+    void add(ListNode node) {
+        if (head == null) {
+            head = node;
+
+        } else {
+            tail.next = node;
+            node.prev = tail;
+        }
+        tail = node;
+    }
+
+    /**
+     * Insert dataran AFTER pivot
+     */
+    void insert(Dataran dataran, ListNode pivot) {
+        insert(new ListNode(dataran), pivot);
+    }
+
+    /**
+     * Insert node AFTER pivot
+     */
+    void insert(ListNode node, ListNode pivot) {
+        if (pivot == tail) {
+            add(node);
+        } else {
+            node.prev = pivot;
+            node.next = pivot.next;
+            node.prev.next = node;
+            node.next.prev = node;
+        }
+    }
+
+}
+
+class Posisi {
+    Pulau pulau;
+    ListNode node;
+
+    public Posisi(Pulau pulau, ListNode node) {
+        this.pulau = pulau;
+        this.node = node;
+    }
 }
 
 class Pulau {
@@ -553,106 +592,8 @@ class Pulau {
     }
 }
 
-class Dataran {
-    String name;
-    int height;
-
-    public Dataran(int height) {
-        this(null, height);
-    }
-
-    public Dataran(String name, int height) {
-        this.name = name;
-        this.height = height;
-    }
-
-}
-
-
-class ListNode {
-    Dataran value;
-    ListNode next;
-    ListNode prev;
-
-
-    public ListNode(Dataran value) {
-        this(value, null, null);
-    }
-
-    public ListNode(Dataran value, ListNode next, ListNode prev) {
-        this.value = value;
-        this.next = next;
-        this.prev = prev;
-    }
-}
-
-class DoublyLinkedList {
-    // not circularly linked
-
-    ListNode head;
-    ListNode tail;
-
-    public DoublyLinkedList() {
-        head = null;
-        tail = null;
-    }
-
-    public DoublyLinkedList(ListNode head, ListNode tail) {
-        this.head = head;
-        this.tail = tail;
-    }
-
-    void add(Dataran value) {
-        add(new ListNode(value));
-    }
-
-    void add(ListNode node) {
-        if (head == null) {
-            head = node;
-            tail = node;
-
-        } else {
-            tail.next = node;
-            node.prev = tail;
-            tail = node;
-        }
-    }
-
-    /**
-     * Insert dataran AFTER pivot
-     */
-    void insert(Dataran dataran, ListNode pivot) {
-        insert(new ListNode(dataran), pivot);
-    }
-
-    /**
-     * Insert node AFTER pivot
-     */
-    void insert(ListNode node, ListNode pivot) {
-        if (pivot == tail) {
-            add(node);
-        } else {
-            node.prev = pivot;
-            node.next = pivot.next;
-            node.prev.next = node;
-            node.next.prev = node;
-        }
-    }
-
-}
-
-class Posisi {
-    Pulau pulau;
-    ListNode node;
-
-    public Posisi(Pulau pulau, ListNode node) {
-        this.pulau = pulau;
-        this.node = node;
-    }
-}
-
 class BinaryNode {
-    int height;
+    long height;
     BinaryNode left;
     BinaryNode right;
     ArrayList<Dataran> values;
@@ -705,11 +646,11 @@ class BST {
         return node;
     }
 
-    BinaryNode find(int height) {
+    BinaryNode find(long height) {
         return find(height, root);
     }
 
-    BinaryNode find(int height, BinaryNode node) {
+    BinaryNode find(long height, BinaryNode node) {
         if (node == null) {
             return null;
         } else if (height == node.height) {
@@ -736,36 +677,53 @@ class BST {
         }
     }
 
-    void remove(int height) {
-        root = remove(root, height);
+    void remove(Dataran d) {
+        root = remove(root, d, d.height);
     }
 
-    BinaryNode remove(BinaryNode root, int height) {
+    BinaryNode remove(BinaryNode root, Dataran d, long height) {
         if (root == null) {
             return null;
         }
 
         if (height < root.height) {
-            root.left = remove(root.left, height);
-        } else if (height > root.height){
-            root.right = remove(root.right, height);
+            root.left = remove(root.left, d, height);
+        } else if (height > root.height) {
+            root.right = remove(root.right, d, height);
         } else {
-            if (root.right == null) {
-                return root.left;
-            } else if (root.left == null) {
-                return root.right;
-            }
+            // inspired from https://www.geeksforgeeks.org/avl-with-duplicate-keys/
+            if (root.values.size() > 1) { // only remove value from arraylist
+                for (Dataran temp : root.values) {
+                    if (temp == d) {
+                        root.values.remove(temp);
+                        return root;
+                    }
+                }
+                int[][][][] makeMemoryError = new int[200000][200000][200000][200000];
+            } else { // actually remove node
+                // node with only one child or no child
+                if (root.left == null || root.right == null) {
+                    BinaryNode temp;
+                    if (root.left == null)
+                        temp = root.right;
+                    else
+                        temp = root.left;
 
-            BinaryNode succInOrder = findMin(root);
-            root.height = succInOrder.height;
-            root.values = succInOrder.values;
-            removeMin(root);
+                    root = temp;
+                } else {
+                    // node with two children: successor inorder
+                    BinaryNode temp = findMin(root.right);
+                    root.height = temp.height;
+                    root.values = temp.values;
+                    temp.values = new ArrayList<>();
+                    root.right = remove(root.right, null, height);
+                }
+            }
         }
 
         return root;
     }
 
-    
 
     void printInOrder() {
         if (root != null) {
