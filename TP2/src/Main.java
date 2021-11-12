@@ -90,7 +90,7 @@ public class Main {
                     sweeping();
                     break;
                 default:
-                    System.out.println("Something's wrong, I can feel it");
+                    System.out.println("Something's wrong, I can feel it input");
             }
 //            System.out.println(command);
 //            System.out.println("POSISI RAIDEN: "
@@ -127,7 +127,7 @@ public class Main {
         int count = 0;
         ListNode kuilU = posisiKuilU.node;
         ListNode dataranRaiden = posisiRaiden.node;
-        boolean raidenPerluPindah = true;
+        boolean raidenPerluPindah = posisiRaiden.pulau == current;
 
         // update linkedList
         // pulau with U
@@ -284,6 +284,10 @@ public class Main {
 
     }
 
+    // Menghancurkan dataran tempat Raiden Shogun berada sekarang. Raiden Shogun
+    // kemudian pindah ke dataran di sebelah kirinya. Anda mencatat tinggi dataran yang
+    // dihancurkan Zhongli. Jika penghancuran dataran menyebabkan pulau terpisah, pulau akan
+    // disatukan kembali dengan menggabungkan dua dataran yang terpisah.
     private static void crumble() {
         ListNode letakRaiden = posisiRaiden.node;
         if (letakRaiden.value.name != null) {
@@ -307,9 +311,24 @@ public class Main {
             posisiRaiden.pulau.datarans.tail = letakRaiden;
         }
 
+        posisiRaiden.pulau.banyakDataran--;
         posisiRaiden.node = letakRaiden;
+
+        // update kuil indexes
+        // find nearest kuil to the left of the update
+        ListNode temp = posisiRaiden.node;
+        Pulau p = posisiRaiden.pulau;
+        while (temp.value.name == null && temp.prev != null) temp = temp.prev;
+        int leftKuilIndex = p.kuils.indexOf(temp.value.name);
+        for (int i = leftKuilIndex+1; i < p.kuilIndexes.size(); i++) {
+            p.kuilIndexes.set(i, p.kuilIndexes.get(i) - 1);
+        }
     }
 
+    // Bandingkan tinggi dataran yang saat ini dipijak Raiden Shogun dan tinggi
+    // dataran di kirinya. Anggap dataran dengan tinggi lebih rendah memiliki tinggi X. Buat
+    // dataran baru dengan tinggi X di kanan posisi Raiden Shogun. Anda mencatat tinggi dataran
+    // baru yang dibuat Zhongli.
     private static void stabilize() {
         ListNode dataranRaiden = posisiRaiden.node;
         if (dataranRaiden.value.name != null) {
@@ -319,10 +338,23 @@ public class Main {
 
         ListNode leftDataranRaiden = dataranRaiden.prev;
         long x = Math.min(dataranRaiden.value.height, leftDataranRaiden.value.height);
+
+
         Pulau p = posisiRaiden.pulau;
         Dataran d = new Dataran(x);
-        p.dataranTree.insert(d);
+        p.dataranTree.insert(d, x == dataranRaiden.value.height ? dataranRaiden.value : leftDataranRaiden.value);
         p.datarans.insert(d, dataranRaiden);
+        p.banyakDataran++;
+
+        // update kuil indexes
+        // find nearest kuil to the left of the update
+        ListNode temp = dataranRaiden;
+        while (temp.value.name == null && temp.prev != null) temp = temp.prev;
+        int leftKuilIndex = p.kuils.indexOf(temp.value.name);
+        for (int i = leftKuilIndex+1; i < p.kuilIndexes.size(); i++) {
+            p.kuilIndexes.set(i, p.kuilIndexes.get(i) + 1);
+        }
+
         out.println(x);
     }
 
@@ -642,6 +674,25 @@ class BST {
             node.left = insert(value, node.left);
         } else { // value.height == node.height
             node.values.add(value);
+        }
+        return node;
+    }
+
+    void insert(Dataran value, Dataran pivot){
+        root = insert(value, root, pivot);
+    }
+
+    // on duplicate, insert into arraylist AFTER pivot element
+    BinaryNode insert(Dataran value, BinaryNode node, Dataran pivot){
+        if (node == null) {
+            return new BinaryNode(value);
+        } else if (value.height > node.height) {
+            node.right = insert(value, node.right, pivot);
+        } else if (value.height < node.height) {
+            node.left = insert(value, node.left, pivot);
+        } else{
+            int index = node.values.indexOf(pivot);
+            node.values.add(index+1, value);
         }
         return node;
     }
