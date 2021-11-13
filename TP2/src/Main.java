@@ -1,3 +1,7 @@
+/*
+Banyak ide pengerjaan dari Immanuel (2006463162)
+ */
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -685,7 +689,6 @@ class Pulau {
                 bobTheBuilder.append(head.value.bnode.height).append(" ");
                 head = head.next;
             }
-            System.out.println("KUIL " + k.name + " TREE: ");
             k.dataranTree.printInOrder();
         }
         return bobTheBuilder.toString();
@@ -697,7 +700,9 @@ class BinaryNode {
     BinaryNode left;
     int numLefts;
     BinaryNode right;
+    int numRights;
     DoublyLinkedList values;
+    int nodeHeight;
 
     public BinaryNode(Dataran value) {
         this(value, null, null);
@@ -710,6 +715,8 @@ class BinaryNode {
         values = new DoublyLinkedList();
         values.add(value, true);
         numLefts = 0;
+        numRights = 0;
+        nodeHeight = 1;
     }
 
     void printInOrder() {
@@ -728,29 +735,71 @@ class BinaryNode {
     }
 }
 
+// taken from https://www.geeksforgeeks.org/avl-tree-set-1-insertion/
+// with modifications
 class BST {
     // Duplicate values will be saved in one Node
     // in a linkedlist
     BinaryNode root;
 
-    void insert(Dataran value) {
-        root = insert(value, root);
+    int nodeHeight(BinaryNode n) {
+        if (n == null)
+            return 0;
+        return n.nodeHeight;
     }
 
-    BinaryNode insert(Dataran value, BinaryNode node) {
-        if (node == null) {
-            value.bnode = new BinaryNode(value);
-            return value.bnode;
-        } else if (value.bnode.height > node.height) {
-            node.right = insert(value, node.right);
-        } else if (value.bnode.height < node.height) {
-            node.numLefts++;
-            node.left = insert(value, node.left);
-        } else { // value.bnode.height == node.height
-            value.bnode = node;
-            node.values.add(value, true);
-        }
-        return node;
+    BinaryNode rightRotate(BinaryNode y){
+        BinaryNode x = y.left;
+        BinaryNode T2 = x.right;
+
+        // perform rotation
+        x.right = y;
+        y.left = T2;
+
+        // update heights
+        y.nodeHeight = Math.max(nodeHeight(y.left), nodeHeight(y.right)) + 1;
+        x.nodeHeight = Math.max(nodeHeight(x.left), nodeHeight(x.right)) + 1;
+
+        if (T2 != null)
+            y.numLefts = T2.values.size() + T2.numRights + T2.numLefts;
+        else
+            y.numLefts = 0;
+        x.numRights = y.values.size() + y.numLefts + y.numRights;
+
+        // return new root
+        return x;
+    }
+
+    BinaryNode leftRotate(BinaryNode x) {
+        BinaryNode y = x.right;
+        BinaryNode T2 = y.left;
+
+        // perform rotation
+        y.left = x;
+        x.right = T2;
+
+        // update heights
+        x.nodeHeight = Math.max(nodeHeight(x.left), nodeHeight(x.right)) + 1;
+        y.nodeHeight = Math.max(nodeHeight(y.left), nodeHeight(y.right)) + 1;
+
+        if (T2 != null)
+            x.numRights = T2.values.size() + T2.numLefts + T2.numRights;
+        else
+            x.numRights = 0;
+        y.numLefts = x.values.size() + x.numLefts + x.numRights;
+
+        // return new root
+        return y;
+    }
+
+    int getBalance(BinaryNode n) {
+        if (n == null)
+            return 0;
+        return nodeHeight(n.left) - nodeHeight(n.right);
+    }
+
+    void insert(Dataran value) {
+        insert(value, null);
     }
 
     void insert(Dataran value, Dataran pivot) {
@@ -763,14 +812,46 @@ class BST {
             value.bnode = new BinaryNode(value);
             return value.bnode;
         } else if (value.bnode.height > node.height) {
+            node.numRights++;
             node.right = insert(value, node.right, pivot);
         } else if (value.bnode.height < node.height) {
             node.numLefts++;
             node.left = insert(value, node.left, pivot);
-        } else {
+        } else { // value.bnode.height == node.height
             value.bnode = node;
-            node.values.insert(value, pivot.blnode, true);
+            if (pivot != null)
+                node.values.insert(value, pivot.blnode, true);
+            else
+                node.values.add(value, true);
+            return node;
         }
+        // update height of this node
+        node.nodeHeight = 1 + Math.max(nodeHeight(node.left), nodeHeight(node.right));
+
+        // get the balance factor of this node to check unbalanced or not
+        int balance = getBalance(node);
+
+        // handle unbalanced nodes
+        // left-left case
+        if (balance > 1 && value.height < node.left.height)
+            return rightRotate(node);
+
+        // right-right case
+        if (balance < -1 && value.height > node.right.height)
+            return leftRotate(node);
+
+        // left-right case
+        if (balance > 1 && value.height > node.left.height) {
+            node.left = leftRotate(node.left);
+            return rightRotate(node);
+        }
+
+        // right-left case
+        if (balance < -1 && value.height < node.right.height) {
+            node.right = rightRotate(node.right);
+            return leftRotate(node);
+        }
+
         return node;
     }
 
@@ -818,6 +899,7 @@ class BST {
             root.numLefts--;
             root.left = remove(root.left, d, height);
         } else if (height > root.height) {
+            root.numRights--;
             root.right = remove(root.right, d, height);
         } else {
             // inspired from https://www.geeksforgeeks.org/avl-with-duplicate-keys/
