@@ -55,6 +55,12 @@ public class Main {
         }
 
         posisiRaiden = new Posisi(pulauRaiden, kuilRaiden, dataranRaiden);
+        BinaryNode bnodeRaiden = kuilRaiden.dataranTree.find(dataranRaiden.value.height);
+        ListNode head = bnodeRaiden.values.head;
+        while (head.value != dataranRaiden.value) {
+            head = head.next;
+        }
+        posisiRaiden.blnode = head;
 
         int eventCount = in.nextInt();
 
@@ -99,7 +105,8 @@ public class Main {
 //                    + "pulau: " + posisiRaiden.pulau.name
 //                    + " kuil: " + posisiRaiden.kuil.name
 //                    + " node: " + posisiRaiden.node.value.name
-//                    + posisiRaiden.node.value.bnode.height);
+//                    + posisiRaiden.node.value.bnode.height
+//                    + " blnode: " + posisiRaiden.blnode.value.bnode.height);
 //            for (Pulau p : pulaus.values()) {
 //                System.out.println(p);
 //            }
@@ -260,6 +267,7 @@ public class Main {
         k.banyakDatarans--;
         posisiRaiden.pulau.banyakDataran--;
         posisiRaiden.node = letakRaiden;
+        posisiRaiden.blnode = letakRaiden.value.blnode;
 
     }
 
@@ -321,6 +329,7 @@ public class Main {
                             dataranRaiden = dataranRaiden.prev;
                             s--;
                         }
+                        s = 0;
                     } else {
                         dataranRaiden = prevKuil.datarans.head;
                         int moves = prevKuil.banyakDatarans - s;
@@ -352,6 +361,7 @@ public class Main {
                             dataranRaiden = dataranRaiden.next;
                             s--;
                         }
+                        s = 0;
                     } else {
                         dataranRaiden = nextKuil.datarans.tail;
                         int moves = nextKuil.banyakDatarans - s;
@@ -367,68 +377,131 @@ public class Main {
 
         posisiRaiden.node = dataranRaiden;
         posisiRaiden.kuil = kuilRaiden;
+        posisiRaiden.blnode = dataranRaiden.value.blnode;
         out.println(dataranRaiden.value.bnode.height);
     }
 
     private static void tebas() {
         String arah = in.next();
         int s = in.nextInt();
+
         Pulau pulauRaiden = posisiRaiden.pulau;
-        ListNode dataranRaidenAwal = posisiRaiden.node;
-        ListNode orderedDataranRaiden = posisiRaiden.node;
-        long tinggiDataranRaidenAwal = dataranRaidenAwal.value.bnode.height;
+        Kuil kuilRaiden = posisiRaiden.kuil;
+        ListNode posisiAwalRaiden = posisiRaiden.blnode;
+        long tinggiDataranRaidenAwal = posisiRaiden.node.value.bnode.height;
+        ListNode equalRaiden = posisiRaiden.blnode;
 
-        HashMap<Dataran, Kuil> lokasiDataran = new HashMap<>();
-        ArrayList<ListNode> equal = new ArrayList<>();
+        ArrayList<DoublyLinkedList> equals = new ArrayList<>();
+        HashMap<DoublyLinkedList, Kuil> lokasiList = new HashMap<>();
+        int tempIndex = 0;
+        int index = 0;
 
-        for (Kuil k : pulauRaiden.kuils) {
-            BST t = k.dataranTree;
-            BinaryNode equalNode = t.find(tinggiDataranRaidenAwal);
-            if (equalNode == null) {
+        for (int i = 0; i < pulauRaiden.kuils.size(); i++) {
+            Kuil k = pulauRaiden.kuils.get(i);
+            BinaryNode equalBnode = k.dataranTree.find(tinggiDataranRaidenAwal);
+            if (equalBnode == null) {
                 continue;
             }
-            ListNode d = equalNode.values.head;
-            while (d != null) {
-                equal.add(d);
-                lokasiDataran.put(d.value, k);
-                if (d.value == dataranRaidenAwal.value) {
-                    dataranRaidenAwal = d;
-                }
-                d = d.next;
+            lokasiList.put(equalBnode.values, k);
+            equals.add(equalBnode.values);
+            if (kuilRaiden == k){
+                index = tempIndex;
             }
+            tempIndex++;
         }
-
-        int index = equal.indexOf(dataranRaidenAwal);
 
         if (arah.equals("KIRI")) {
-            index = Math.max(index - s, 0);
-            posisiRaiden.node = equal.get(index).value.lnode;
-            posisiRaiden.kuil = lokasiDataran.get(posisiRaiden.node.value);
-            if (orderedDataranRaiden != posisiRaiden.node) {
-                if (posisiRaiden.node.next == null) {
-                    Dataran nextDataran = pulauRaiden.kuils.get(pulauRaiden.kuils.indexOf(posisiRaiden.kuil) + 1).datarans.head.value;
-                    out.println(nextDataran.bnode.height);
+            while (s > 0 && equalRaiden.prev != null) {
+                equalRaiden = equalRaiden.prev;
+                s--;
+            }
+            while (s > 0 && index > 0) {
+                DoublyLinkedList prevList = equals.get(--index);
+                if (s > prevList.size()) {
+                    s -= prevList.size();
+                    equalRaiden = prevList.head;
+                    continue;
                 } else {
-                    out.println(posisiRaiden.node.next.value.bnode.height);
+                    if (prevList.size() - s > prevList.size() / 2) {
+                        s--;
+                        equalRaiden = prevList.tail;
+                        while (s > 0 && equalRaiden.prev != null) {
+                            equalRaiden = equalRaiden.prev;
+                            s--;
+                        }
+                        s = 0;
+                    } else {
+                        equalRaiden = prevList.head;
+                        int moves = prevList.size() - s;
+                        s = 0;
+                        while (moves > 0) {
+                            equalRaiden = equalRaiden.next;
+                            moves--;
+                        }
+                    }
                 }
+            }
+            if (equalRaiden != posisiAwalRaiden) {
+                if (equalRaiden.value.lnode.next != null) {
+                    out.println(equalRaiden.value.lnode.next.value.bnode.height);
+                } else {
+                    Kuil curKuil = lokasiList.get(equals.get(index));
+                    Dataran nextDataran = pulauRaiden.kuils.get(pulauRaiden.kuils.indexOf(curKuil)+1).datarans.head.value;
+                    out.println(nextDataran.bnode.height);
+                }
+                posisiRaiden.node = equalRaiden.value.lnode;
+                posisiRaiden.kuil = lokasiList.get(equals.get(index));
+                posisiRaiden.blnode = equalRaiden.value.blnode;
             } else {
                 out.println(0);
             }
-        } else { // arah.equals("KANAN")
-            index = Math.min(index + s, equal.size() - 1);
-            posisiRaiden.node = equal.get(index).value.lnode;
-            posisiRaiden.kuil = lokasiDataran.get(posisiRaiden.node.value);
-            if (orderedDataranRaiden != posisiRaiden.node) {
-                if (posisiRaiden.node.prev == null) {
-                    Dataran prevDataran = pulauRaiden.kuils.get(pulauRaiden.kuils.indexOf(posisiRaiden.kuil) - 1).datarans.tail.value;
-                    out.println(prevDataran.bnode.height);
+        } else { // arah == "KANAN"
+            while (s > 0 && equalRaiden.next != null) {
+                equalRaiden = equalRaiden.next;
+                s--;
+            }
+            while (s > 0 && index < equals.size()-1) {
+                DoublyLinkedList nextList = equals.get(++index);
+                if (s > nextList.size()) {
+                    s -= nextList.size();
+                    equalRaiden = nextList.tail;
+                    continue;
                 } else {
-                    out.println(posisiRaiden.node.prev.value.bnode.height);
+                    if (nextList.size() - s > nextList.size() / 2) {
+                        s--;
+                        equalRaiden = nextList.head;
+                        while (s > 0 && equalRaiden.next != null) {
+                            equalRaiden = equalRaiden.next;
+                            s--;
+                        }
+                        s = 0;
+                    } else {
+                        equalRaiden = nextList.tail;
+                        int moves = nextList.size() - s;
+                        s = 0;
+                        while (moves > 0) {
+                            equalRaiden = equalRaiden.prev;
+                            moves--;
+                        }
+                    }
                 }
+            }
+            if (equalRaiden != posisiAwalRaiden) {
+                if (equalRaiden.value.lnode.prev != null) {
+                    out.println(equalRaiden.value.lnode.prev.value.bnode.height);
+                } else {
+                    Kuil curKuil = lokasiList.get(equals.get(index));
+                    Dataran prevDataran = pulauRaiden.kuils.get(pulauRaiden.kuils.indexOf(curKuil)-1).datarans.tail.value;
+                    out.println(prevDataran.bnode.height);
+                }
+                posisiRaiden.node = equalRaiden.value.lnode;
+                posisiRaiden.kuil = lokasiList.get(equals.get(index));
+                posisiRaiden.blnode = equalRaiden.value.blnode;
             } else {
                 out.println(0);
             }
         }
+
 
     }
 
@@ -439,6 +512,7 @@ public class Main {
         posisiRaiden.pulau = k.pulau;
         posisiRaiden.node = k.datarans.head;
         posisiRaiden.kuil = k;
+        posisiRaiden.blnode = posisiRaiden.node.value.blnode;
         out.println(posisiRaiden.node.value.bnode.height);
     }
 
@@ -634,6 +708,7 @@ class Posisi {
     Pulau pulau;
     Kuil kuil;
     ListNode node;
+    ListNode blnode;
 
     public Posisi(Pulau pulau, Kuil kuil, ListNode node) {
         this.pulau = pulau;
