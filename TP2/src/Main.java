@@ -281,9 +281,11 @@ public class Main {
         Dataran d = new Dataran(x);
         d.bnode = new BinaryNode(d);
         kuilRaiden.datarans.insert(d, dataranRaiden);
-        kuilRaiden.dataranTree.insert(d, (x == dataranRaiden.value.bnode.height)
-                ? dataranRaiden.value
-                : leftDataranRaiden.value);
+        if (x == dataranRaiden.value.bnode.height) {
+            kuilRaiden.dataranTree.insert(d, dataranRaiden.value);
+        } else {
+            kuilRaiden.dataranTree.insert(d, leftDataranRaiden.value);
+        }
         kuilRaiden.banyakDatarans++;
         kuilRaiden.pulau.banyakDataran++;
 
@@ -903,7 +905,7 @@ class BST {
             root.right = remove(root.right, d, height);
         } else {
             // inspired from https://www.geeksforgeeks.org/avl-with-duplicate-keys/
-            if (root.values.head != root.values.tail) { // only remove value from list
+            if (root.values.size() > 1) { // only remove value from list
                 root.values.remove(d.blnode);
                 return root;
             } else { // actually remove node
@@ -918,13 +920,73 @@ class BST {
                     root = temp;
                 } else {
                     // node with two children: successor inorder
-                    BinaryNode temp = findMin(root.right);
-                    root.height = temp.height;
-                    root.values = temp.values;
-                    temp.values = new DoublyLinkedList();
-                    root.right = remove(root.right, null, height);
+                    BinaryNode toRemove = findMin(root.right);
+
+                    BinaryNode toRemoveLeft = toRemove.left;
+                    BinaryNode toRemoveRight = toRemove.right;
+                    int toRemoveNodeHeight = toRemove.nodeHeight;
+                    int toRemoveNumLeft = toRemove.numLefts;
+                    int toRemoveNumRight = toRemove.numRights;
+                    DoublyLinkedList toRemoveValues = toRemove.values;
+
+                    toRemove.values = new DoublyLinkedList();
+                    root.right = remove(root.right, null, toRemove.height);
+
+                    BinaryNode rootLeft = root.left;
+                    BinaryNode rootRight = root.right;
+                    int rootNodeHeight = root.nodeHeight;
+                    int rootNumLeft = root.numLefts;
+                    int rootNumRight = root.numRights;
+                    DoublyLinkedList rootValues = root.values;
+
+
+                    root = toRemove;
+                    root.nodeHeight = rootNodeHeight;
+                    root.numLefts = rootNumLeft;
+                    root.numRights = rootNumRight - 1;
+                    root.left = rootLeft;
+                    root.right = rootRight;
+                    root.values = toRemoveValues;
+
+
+//                    root.height = temp.height;
+//                    root.values = temp.values;
+//                    temp.values = new DoublyLinkedList();
+//                    root.numRights--;
+//                    root.right = remove(root.right, null, temp.height);
                 }
             }
+        }
+
+        // if tree only had one node
+        if (root == null)
+            return null;
+
+        // update height of current node
+        root.nodeHeight = Math.max(nodeHeight(root.left), nodeHeight(root.right)) + 1;
+
+        // get the balance factor of this node to check unbalanced or not
+        int balance = getBalance(root);
+
+        // handle unbalanced
+        // Left-Left Case
+        if (balance > 1 && getBalance(root.left) >= 0)
+            return rightRotate(root);
+
+        // Left-Right Case
+        if (balance > 1 && getBalance(root.left) < 0) {
+            root.left = leftRotate(root.left);
+            return rightRotate(root);
+        }
+
+        // Right-Right Case
+        if (balance < -1 && getBalance(root.right) <= 0)
+            return leftRotate(root);
+
+        // Right-Left Case
+        if (balance < -1 && getBalance(root.right) > 0) {
+            root.right = rightRotate(root.right);
+            return leftRotate(root);
         }
 
         return root;
