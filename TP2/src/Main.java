@@ -404,7 +404,7 @@ public class Main {
             }
             lokasiList.put(equalBnode.values, k);
             equals.add(equalBnode.values);
-            if (kuilRaiden == k){
+            if (kuilRaiden == k) {
                 index = tempIndex;
             }
             tempIndex++;
@@ -446,7 +446,7 @@ public class Main {
                     out.println(equalRaiden.value.lnode.next.value.bnode.height);
                 } else {
                     Kuil curKuil = lokasiList.get(equals.get(index));
-                    Dataran nextDataran = pulauRaiden.kuils.get(pulauRaiden.kuils.indexOf(curKuil)+1).datarans.head.value;
+                    Dataran nextDataran = pulauRaiden.kuils.get(pulauRaiden.kuils.indexOf(curKuil) + 1).datarans.head.value;
                     out.println(nextDataran.bnode.height);
                 }
                 posisiRaiden.node = equalRaiden.value.lnode;
@@ -460,7 +460,7 @@ public class Main {
                 equalRaiden = equalRaiden.next;
                 s--;
             }
-            while (s > 0 && index < equals.size()-1) {
+            while (s > 0 && index < equals.size() - 1) {
                 DoublyLinkedList nextList = equals.get(++index);
                 if (s > nextList.size()) {
                     s -= nextList.size();
@@ -491,7 +491,7 @@ public class Main {
                     out.println(equalRaiden.value.lnode.prev.value.bnode.height);
                 } else {
                     Kuil curKuil = lokasiList.get(equals.get(index));
-                    Dataran prevDataran = pulauRaiden.kuils.get(pulauRaiden.kuils.indexOf(curKuil)-1).datarans.tail.value;
+                    Dataran prevDataran = pulauRaiden.kuils.get(pulauRaiden.kuils.indexOf(curKuil) - 1).datarans.tail.value;
                     out.println(prevDataran.bnode.height);
                 }
                 posisiRaiden.node = equalRaiden.value.lnode;
@@ -657,8 +657,10 @@ class DoublyLinkedList {
         size++;
     }
 
-    /** Insert dataran AFTER pivot */
-    void insert(Dataran dataran, ListNode pivot){
+    /**
+     * Insert dataran AFTER pivot
+     */
+    void insert(Dataran dataran, ListNode pivot) {
         insert(dataran, pivot, false);
     }
 
@@ -825,7 +827,7 @@ class BST {
         return n.nodeHeight;
     }
 
-    BinaryNode rightRotate(BinaryNode y){
+    BinaryNode rightRotate(BinaryNode y) {
         BinaryNode x = y.left;
         BinaryNode T2 = x.right;
 
