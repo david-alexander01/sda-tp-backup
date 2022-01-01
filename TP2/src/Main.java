@@ -268,6 +268,7 @@ public class Main {
         posisiRaiden.pulau.banyakDataran--;
         posisiRaiden.node = letakRaiden;
         posisiRaiden.blnode = letakRaiden.value.blnode;
+        // posisi raiden bnode juga diupdate
 
     }
 
@@ -378,6 +379,7 @@ public class Main {
         posisiRaiden.node = dataranRaiden;
         posisiRaiden.kuil = kuilRaiden;
         posisiRaiden.blnode = dataranRaiden.value.blnode;
+        // bnode nya harusnya diupdate juga
         out.println(dataranRaiden.value.bnode.height);
     }
 
@@ -452,6 +454,7 @@ public class Main {
                 posisiRaiden.node = equalRaiden.value.lnode;
                 posisiRaiden.kuil = lokasiList.get(equals.get(index));
                 posisiRaiden.blnode = equalRaiden.value.blnode;
+                // posisi raiden bnode diupdate
             } else {
                 out.println(0);
             }
@@ -513,6 +516,7 @@ public class Main {
         posisiRaiden.node = k.datarans.head;
         posisiRaiden.kuil = k;
         posisiRaiden.blnode = posisiRaiden.node.value.blnode;
+        // posisi raiden bnode update
         out.println(posisiRaiden.node.value.bnode.height);
     }
 
